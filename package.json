@@ -1,0 +1,21 @@
+{
+  "name": "com.cpeakdot.konsole",
+  "version": "1.0.0",
+  "displayName": "Konsole",
+  "description": "A channel-based log API and an editor console window for Unity. Info and Warning calls are removed from player builds. Error calls stay, but never use Debug.LogError.",
+  "unity": "6000.0",
+  "documentationUrl": "https://github.com/cpeakdot/Konsole#readme",
+  "changelogUrl": "https://github.com/cpeakdot/Konsole/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/cpeakdot/Konsole/blob/main/LICENSE.md",
+  "keywords": [
+    "log",
+    "logging",
+    "console",
+    "debug",
+    "editor"
+  ],
+  "author": {
+    "name": "cpeakdot",
+    "url": "https://github.com/cpeakdot"
+  }
+}

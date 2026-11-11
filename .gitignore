@@ -1,0 +1,6 @@
+*.unitypackage
+.DS_Store
+Thumbs.db
+.idea/
+.vs/
+.vscode/
