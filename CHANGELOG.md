@@ -3,6 +3,14 @@
 All notable changes to this package are listed here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `Debug.Log` now makes an info row in the `unity` channel.
+- A Unity log that copies a `Konsole.*` log in the same frame makes no row.
+- `KonsoleEntry.Frame`.
+
 ## [1.0.0] - 2026-11-11
 
 ### Added

@@ -7,7 +7,7 @@ A channel-based log API and an editor console window for Unity.
 - **Channels.** Tag each log with a free string (`"save"`, `"ads"`, `"level"`). Show or hide channels from one menu.
 - **Clean builds.** `Info` and `Warning` calls are removed from player builds by the compiler. They cost nothing on a device.
 - **Crash-tool safe errors.** `Error` stays in builds, but it never calls `Debug.LogError`. Crashlytics and similar tools capture `Debug.LogError` as a crash report.
-- **One place for all logs.** Unity warnings, errors, exceptions and compiler messages also show in the window, in the `unity` channel.
+- **One place for all logs.** Unity logs, warnings, errors, exceptions and compiler messages also show in the window, in the `unity` channel.
 - **Fast to read.** Search, collapse, severity toggles, a stack trace panel with clickable frames, and an adjustable font size.
 
 ## Install
@@ -124,8 +124,9 @@ Logs that do not come from `Konsole.*` go to the `unity` channel:
 
 - `Debug.LogWarning` makes a warning row.
 - `Debug.LogError`, exceptions and failed asserts make an error row.
+- `Debug.Log` makes an info row.
 - Compiler errors and warnings make a row with the file and line. A new compile replaces them.
-- Plain `Debug.Log` makes no row.
+- If a Unity log copies a `Konsole.*` log, it makes no row. Example: `Konsole.Info("ui", "x");` then `Debug.Log("[ui] x");` in the same frame gives 1 row.
 
 This channel is hidden by default. Select it in the **Channels** menu to see it.
 

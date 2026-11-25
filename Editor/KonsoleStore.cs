@@ -25,6 +25,7 @@ namespace Cpeakdot.Logging
         public bool IsErrorPauseEnabled { get; private set; }
 
         private readonly int[] m_SeverityCounts = new int[SEVERITY_COUNT];
+        private readonly List<KonsoleEntry> m_UnpairedKonsoleEntries = new List<KonsoleEntry>();
 
         public event Action OnChanged;
 
@@ -150,12 +151,69 @@ namespace Cpeakdot.Logging
         private void AddPendingEntries(out bool hasError)
         {
             hasError = false;
+            // Time.frameCount does not advance in edit mode, so a pair must also come from the same call of this method.
+            m_UnpairedKonsoleEntries.Clear();
             while (PENDING_ENTRIES.TryDequeue(out KonsoleEntry entry))
             {
+                if (TryPairWithKonsoleEntry(entry))
+                {
+                    continue;
+                }
+
+                AddPairCandidate(entry);
                 m_Entries.Add(entry);
                 m_SeverityCounts[(int)entry.Severity]++;
                 hasError |= entry.Severity == KonsoleSeverity.Error;
             }
+        }
+
+        private bool TryPairWithKonsoleEntry(KonsoleEntry unityEntry)
+        {
+            if (unityEntry.Frame == KonsoleEntry.NO_FRAME || unityEntry.Channel != Konsole.UNITY_CHANNEL)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < m_UnpairedKonsoleEntries.Count; i++)
+            {
+                KonsoleEntry konsoleEntry = m_UnpairedKonsoleEntries[i];
+                if (konsoleEntry.Frame == unityEntry.Frame && konsoleEntry.Severity == unityEntry.Severity && IsConsoleTextOf(unityEntry.Message, konsoleEntry))
+                {
+                    m_UnpairedKonsoleEntries.RemoveAt(i);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void AddPairCandidate(KonsoleEntry entry)
+        {
+            if (entry.Frame == KonsoleEntry.NO_FRAME || entry.Channel == Konsole.UNITY_CHANNEL)
+            {
+                return;
+            }
+
+            m_UnpairedKonsoleEntries.Add(entry);
+        }
+
+        // Must match the text that Konsole.GetConsoleText writes to Unity: "[channel] message", or only the message.
+        private static bool IsConsoleTextOf(string text, KonsoleEntry konsoleEntry)
+        {
+            string channel = konsoleEntry.Channel;
+            string message = konsoleEntry.Message;
+            if (channel.Length == 0)
+            {
+                return text == message;
+            }
+
+            int messageStart = channel.Length + 3;
+            return text.Length == messageStart + message.Length
+                && text[0] == '['
+                && string.CompareOrdinal(text, 1, channel, 0, channel.Length) == 0
+                && text[channel.Length + 1] == ']'
+                && text[channel.Length + 2] == ' '
+                && string.CompareOrdinal(text, messageStart, message, 0, message.Length) == 0;
         }
 
         private void TrimOldEntries()

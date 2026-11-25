@@ -16,6 +16,7 @@ namespace Cpeakdot.Logging
         [field: SerializeField] public string Channel { get; private set; }
         [field: SerializeField] public string Message { get; private set; }
         [field: SerializeField] public string TimeText { get; private set; }
+        [field: SerializeField] public int Frame { get; private set; }
 
         [field: SerializeField] public string StackTrace { get; private set; }
         [field: SerializeField] public int ContextId { get; private set; }
@@ -38,6 +39,7 @@ namespace Cpeakdot.Logging
             Channel = channel;
             Message = message;
             TimeText = CreateTimeText(frame);
+            Frame = frame;
             StackTrace = stackTrace;
             ContextId = contextId;
         }

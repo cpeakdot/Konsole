@@ -24,7 +24,7 @@ namespace Cpeakdot.Logging
 
         private static int m_MainThreadId;
 
-        [ThreadStatic] private static bool m_IsOwnWarning;
+        [ThreadStatic] private static bool m_IsOwnLog;
 
         public static event Action<KonsoleEntry> OnEntryLogged;
 
@@ -39,7 +39,9 @@ namespace Cpeakdot.Logging
         [HideInCallstack]
         public static void Info(string channel, string message, Object context = null)
         {
+            m_IsOwnLog = true;
             Debug.Log(GetConsoleText(channel, message), context);
+            m_IsOwnLog = false;
             ReportEntry(KonsoleSeverity.Info, channel, message, context);
         }
 
@@ -54,10 +56,9 @@ namespace Cpeakdot.Logging
         [HideInCallstack]
         public static void Warning(string channel, string message, Object context = null)
         {
-            // Unity calls the log callback inside Debug.LogWarning, so the flag prevents a second row for this warning.
-            m_IsOwnWarning = true;
+            m_IsOwnLog = true;
             Debug.LogWarning(GetConsoleText(channel, message), context);
-            m_IsOwnWarning = false;
+            m_IsOwnLog = false;
             ReportEntry(KonsoleSeverity.Warning, channel, message, context);
         }
 
@@ -70,13 +71,16 @@ namespace Cpeakdot.Logging
         [HideInCallstack]
         public static void Error(string channel, string message, Object context = null)
         {
+            m_IsOwnLog = true;
             Debug.Log(ERROR_PREFIX + GetConsoleText(channel, message), context);
+            m_IsOwnLog = false;
             ReportEntry(KonsoleSeverity.Error, channel, message, context);
         }
 
+        // Unity calls this callback inside Debug.Log, so m_IsOwnLog prevents a second row for a Konsole log.
         private static void Application_OnLogMessageReceived(string condition, string stackTrace, LogType type)
         {
-            if (m_IsOwnWarning || type == LogType.Log)
+            if (m_IsOwnLog)
             {
                 return;
             }
@@ -87,9 +91,21 @@ namespace Cpeakdot.Logging
                 return;
             }
 
-            KonsoleSeverity severity = type == LogType.Warning ? KonsoleSeverity.Warning : KonsoleSeverity.Error;
             string trace = string.IsNullOrEmpty(stackTrace) ? string.Empty : stackTrace.TrimEnd('\n');
-            handler.Invoke(new KonsoleEntry(severity, UNITY_CHANNEL, condition, trace, GetFrameOnMainThread(), KonsoleEntry.NO_CONTEXT));
+            handler.Invoke(new KonsoleEntry(GetSeverity(type), UNITY_CHANNEL, condition, trace, GetFrameOnMainThread(), KonsoleEntry.NO_CONTEXT));
+        }
+
+        private static KonsoleSeverity GetSeverity(LogType type)
+        {
+            switch (type)
+            {
+                case LogType.Log:
+                    return KonsoleSeverity.Info;
+                case LogType.Warning:
+                    return KonsoleSeverity.Warning;
+                default:
+                    return KonsoleSeverity.Error;
+            }
         }
 
         private static string GetConsoleText(string channel, string message)

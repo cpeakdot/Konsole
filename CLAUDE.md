@@ -59,7 +59,8 @@ Compiler messages ───────────┴────────�
 
 ## KonsoleEntry
 
-- Fields: `Severity`, `Channel`, `Message`, `TimeText`, `StackTrace`, `ContextId`, `IsCompilerMessage`.
+- Fields: `Severity`, `Channel`, `Message`, `TimeText`, `Frame`, `StackTrace`, `ContextId`, `IsCompilerMessage`.
+- `Frame` is `Time.frameCount`, or `NO_FRAME` for a log from another thread or a compiler message.
 - `TimeText` is `HH:mm:ss.fff #frame`. The frame is added only for logs from the main thread.
 - A stack frame line has the form `Type.Method (at path:line)`. `TryParseFrame` reads the path and line back.
 - Konsole's own frames have absolute paths. Unity and compiler frames have project-relative paths. The window accepts the two.
@@ -71,9 +72,16 @@ All logs that do not come from `Konsole.*` go to the channel `Konsole.UNITY_CHAN
 
 Runtime logs (`Konsole.cs`, editor only):
 - `Application.logMessageReceivedThreaded` is the source.
-- `LogType.Log` gives no row. `Warning` gives a warning row. `Error`, `Exception` and `Assert` give an error row.
-- `Konsole.Warning` calls `Debug.LogWarning`, and Unity calls the callback inside that call. The thread-static flag `m_IsOwnWarning` stops a second row.
-- `Konsole.Info` and `Konsole.Error` use `Debug.Log`, so the callback ignores them.
+- `LogType.Log` gives an info row. `Warning` gives a warning row. `Error`, `Exception` and `Assert` give an error row.
+- `Konsole.Info`, `Konsole.Warning` and `Konsole.Error` call `Debug.Log` or `Debug.LogWarning`, and Unity calls the callback inside that call. The thread-static flag `m_IsOwnLog` stops a second row.
+
+Copies from game code (`KonsoleStore.AddPendingEntries`):
+- A `unity` row is a copy of a Konsole row if both have the same frame, the same severity and the same text in the Unity Console.
+- The text in the Unity Console is `[channel] message`, or only `message` if the channel is empty. The `[ERROR]` prefix is not part of it.
+- The `unity` row is dropped. The Konsole row always stays. One Konsole row drops one `unity` row only.
+- Only a Konsole row that comes first counts. `Debug.Log("[ui] x")` then `Konsole.Info("ui", "x")` gives 2 rows.
+- `Time.frameCount` does not advance in edit mode. So the two rows must also come in the same store read (one `EditorApplication.update`).
+- Rows with `NO_FRAME` (other threads) are never dropped.
 
 Compiler messages (`KonsoleStore.cs`):
 - `CompilationPipeline.assemblyCompilationFinished` gives errors and warnings with file and line.
@@ -132,5 +140,6 @@ Detail panel:
 2. Add a temporary script in an `Editor` folder with a `[MenuItem]` that writes test logs.
 3. Read the result from `KonsoleStore` (`m_Entries`, by reflection) or from the window.
 4. For compiler rows, add a temporary script with one error and one warning. Then fix it and compile again.
-5. Check these cases: one row for each log, no second row for `Konsole.Warning`, one row for each compiler message, rows still there after a script reload.
+5. Check these cases: one row for each log, no second row for `Konsole.Info`, `Konsole.Warning` or `Konsole.Error`, one row for each compiler message, rows still there after a script reload.
+6. Check the copy rule: `Konsole.Info("ui", "x")` + `Debug.Log("[ui] x")` gives 1 row. With `Debug.Log("x")` it gives 2 rows. With 2 × `Debug.Log("[ui] x")` it gives 2 rows.
 6. Delete the temporary scripts and their `.meta` files.
